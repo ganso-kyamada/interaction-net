@@ -1,0 +1,6 @@
+.env
+interaction-net/storages/users.csv
+interaction-net/storages/grounds.csv
+interaction-net/storages/schedules.csv
+interaction-net/images
+interaction-net/__pycache__
