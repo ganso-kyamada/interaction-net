@@ -1,3 +1,5 @@
+import time
+import random
 from scrape import Scrape
 from storage import Storage
 
@@ -17,10 +19,11 @@ def execute():
                     ground["name"],
                 )
                 scrape.calender(schedule["date"], schedule["start"], schedule["end"])
-                scrape.apply(schedule["people"])
+                if scrape.apply(schedule["people"]) is False:
+                    break
                 target_type = "目的から"
         scrape.complete()
-
+        time.sleep(random.randint(1, 10))
     scrape.quit()
 
 

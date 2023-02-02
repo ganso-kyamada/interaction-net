@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import NoSuchElementException
 import os
 import re
 
@@ -29,7 +30,11 @@ class Scrape:
         password_element.send_keys(Keys.ENTER)
 
         self.user = user
-        self.driver.find_element(By.LINK_TEXT, "抽選の申込み").click()
+        try:
+            self.driver.find_element(By.LINK_TEXT, "抽選の申込み").click()
+        except NoSuchElementException:
+            self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
+            self.driver.find_element(By.LINK_TEXT, "抽選の申込み").click()
 
     def menu(self, target_type, sports_type, sports_name, ground_name):
         print(f"INFO[{self.user}]: Menu")
@@ -41,7 +46,9 @@ class Scrape:
 
     def calender(self, date, since_date, until_date):
         print(f"INFO[{self.user}]: Calender")
-        self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
+        # TODO: 調整が必要
+        # self.driver.find_element(By.XPATH, "//input[@value='次の週']").click()
+        # self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
         for link_tag in self.driver.find_elements(By.TAG_NAME, "a"):
             href = link_tag.get_attribute("href")
             if href is None:
@@ -61,7 +68,7 @@ class Scrape:
 
         self.__alert_accept(30)
         # 申し込み制限オーバー対策にもう一回
-        self.__alert_accept(3)
+        return self.__alert_accept(3) is False
 
     def complete(self):
         self.driver.find_element(By.LINK_TEXT, "ホーム").click()
@@ -74,17 +81,20 @@ class Scrape:
         self.driver.quit()
 
     def __alert_accept(self, second):
+        accept = False
         try:
             wait = WebDriverWait(self.driver, second)
             wait.until(EC.alert_is_present())
             self.driver.switch_to.alert.accept()
+            accept = True
         except TimeoutException:
             pass
         except Exception as e:
             print(f"ERROR[{self.user}]: {e}")
 
+        return accept
+
     def __screenshot(self, name):
-        print(f"INFO[{self.user}] {name} {self.width} {self.height}")
         filename = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), f"images/{name}_{self.user}.png"
         )
