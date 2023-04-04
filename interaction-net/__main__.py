@@ -39,4 +39,5 @@ def lottery_result():
     scrape.quit()
 
 if __name__ == "__main__":
-    lottery_result()
+    lottery_apply()
+    # lottery_result()

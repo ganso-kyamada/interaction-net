@@ -30,7 +30,7 @@ class Scrape:
         password_element.send_keys(Keys.ENTER)
         self.user = user
 
-    def apply_menu():
+    def apply_menu(self):
         print(f"INFO[{self.user}]: ApplyMenu")
         try:
             self.driver.find_element(By.LINK_TEXT, "抽選の申込み").click()
@@ -51,7 +51,8 @@ class Scrape:
         print(f"INFO[{self.user}]: Calender")
         # TODO: 調整が必要
         # self.driver.find_element(By.XPATH, "//input[@value='次の週']").click()
-        # self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
+        self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
+        # self.driver.find_element(By.XPATH, "//input[@value='前の週']").click()
         for link_tag in self.driver.find_elements(By.TAG_NAME, "a"):
             href = link_tag.get_attribute("href")
             if href is None:
