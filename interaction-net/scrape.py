@@ -31,12 +31,17 @@ class Scrape:
         self.user = user
 
     def apply_menu(self):
-        print(f"INFO[{self.user}]: ApplyMenu")
+        apply_elements = self.driver.find_elements(By.LINK_TEXT, "抽選の申込み")
+        print(f"INFO[{self.user}]: ApplyMenu {len(apply_elements)}")
+        if len(apply_elements) == 0:
+            self.__screenshot('alert')
+            self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
+
         try:
             self.driver.find_element(By.LINK_TEXT, "抽選の申込み").click()
         except NoSuchElementException:
-            self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
-            self.driver.find_element(By.LINK_TEXT, "抽選の申込み").click()
+            return False
+        return True
 
 
     def purpose_menu(self, purpose_type, sports_type, sports_name, ground_name):
@@ -49,20 +54,23 @@ class Scrape:
 
     def calender(self, date, since_date, until_date):
         print(f"INFO[{self.user}]: Calender")
-        # TODO: 調整が必要
-        # self.driver.find_element(By.XPATH, "//input[@value='次の週']").click()
         self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
-        # self.driver.find_element(By.XPATH, "//input[@value='前の週']").click()
-        for link_tag in self.driver.find_elements(By.TAG_NAME, "a"):
-            href = link_tag.get_attribute("href")
-            if href is None:
-                continue
-
-            if date in href and since_date in href and until_date in href:
-                print(f"INFO[{self.user}]: Calender Match!!")
-                link_tag.click()
+        is_match = False
+        for i in range(4):
+            is_match = self.__calender_match(date, since_date, until_date)
+            if is_match is True:
                 break
-        self.driver.find_element(By.XPATH, "//input[@value='申込み']").click()
+
+            try:
+                self.driver.find_element(By.XPATH, "//input[@value='前の週']").click()
+            except NoSuchElementException:
+                print(f"INFO[{self.user}]: Not Match Calender")
+
+        if is_match is True:
+            self.driver.find_element(By.XPATH, "//input[@value='申込み']").click()
+        else:
+            self.driver.find_element(By.LINK_TEXT, "抽選").click()
+        return is_match
 
     def apply(self, people):
         print(f"INFO[{self.user}]: Apply")
@@ -95,6 +103,21 @@ class Scrape:
 
     def quit(self):
         self.driver.quit()
+
+    def __calender_match(self, date, since_date, until_date):
+        is_match = False
+        for link_tag in self.driver.find_elements(By.TAG_NAME, "a"):
+            href = link_tag.get_attribute("href")
+            if href is None:
+                continue
+
+            if date in href and since_date in href and until_date in href:
+                is_match = True
+                print(f"INFO[{self.user}]: Calender Match!!")
+                link_tag.click()
+                break
+
+        return is_match
 
     def __alert_accept(self, second):
         accept = False

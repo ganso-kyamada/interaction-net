@@ -9,7 +9,10 @@ def lottery_apply():
     storage = Storage()
     for user in storage.csv("users"):
         scrape.login(user["id"], user["pass"])
-        scrape.apply_menu()
+        if scrape.apply_menu() is False:
+            scrape.logout()
+            continue
+
         for ground in storage.csv("grounds"):
             purpose_type = "利用目的から"
             for schedule in storage.csv("schedules"):
@@ -19,7 +22,9 @@ def lottery_apply():
                     ground["sports_name"],
                     ground["name"],
                 )
-                scrape.calender(schedule["date"], schedule["start"], schedule["end"])
+                if scrape.calender(schedule["date"], schedule["start"], schedule["end"]) is False:
+                    continue
+
                 if scrape.apply(schedule["people"]) is False:
                     break
                 purpose_type = "目的から"
