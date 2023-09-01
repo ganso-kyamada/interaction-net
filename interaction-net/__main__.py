@@ -1,5 +1,6 @@
 import time
 import random
+import sys, getopt
 from scrape import Scrape
 from storage import Storage
 
@@ -43,6 +44,16 @@ def lottery_result():
         time.sleep(random.randint(1, 10))
     scrape.quit()
 
+def main(argv):
+    opts, args = getopt.getopt(argv,"har",["apply","result"])
+    for opt, arg in opts:
+      if opt == '-h':
+         print ('./interaction-net/__main__.py [-a|-r]')
+         sys.exit()
+      elif opt in ("-a", "--apply"):
+         lottery_apply()
+      elif opt in ("-r", "--result"):
+         lottery_result()
+
 if __name__ == "__main__":
-    lottery_apply()
-    # lottery_result()
+    main(sys.argv[1:])
