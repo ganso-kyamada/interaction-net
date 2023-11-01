@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoAlertPresentException
 import os
 import re
 
@@ -90,11 +91,21 @@ class Scrape:
 
     def result(self):
         print(f"INFO[{self.user}]: Result")
-        try:
-            self.driver.find_element(By.LINK_TEXT, "確認済の抽選結果").click()
-        except NoSuchElementException:
+        result_elements = self.driver.find_elements(By.LINK_TEXT, "確認済の抽選結果")
+        if len(result_elements) == 0:
+            self.__screenshot('alert')
             self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
-            self.driver.find_element(By.LINK_TEXT, "確認済の抽選結果").click()
+
+        self.driver.find_element(By.LINK_TEXT, "確認済の抽選結果").click()
+        if self.__is_alert_present():
+            print(f"INFO[{self.user}]: Not Applied")
+            self.__alert_accept(30)
+            return
+
+        lose_elements = self.driver.find_elements(By.XPATH, "//*[contains(text(), '落選')]")
+        if len(lose_elements) == 4:
+            print(f"INFO[{self.user}]: All Lose...")
+            return
         self.__screenshot("result")
 
     def logout(self):
@@ -139,3 +150,10 @@ class Scrape:
         )
         self.driver.set_window_size(self.width, self.height)
         self.driver.save_screenshot(filename)
+
+    def __is_alert_present(self):
+        try:
+            self.driver.switch_to.alert
+            return True
+        except NoAlertPresentException:
+            return False
