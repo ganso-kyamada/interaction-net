@@ -20,10 +20,19 @@ class IntarctionNet:
         current_month = datetime.now().month
         date = self.__find_fourth_saturday(current_year, current_month)
 
+        debug_count = 0
         for user in storage.csv("users"):
             scrape.login(user["id"], user["pass"])
 
             if scrape.apply_menu() is False:
+                scrape.logout()
+                continue
+
+            if self.debug_mode is True and debug_count > 3:
+                break
+
+            if self.debug_mode is True:
+                debug_count += 1
                 scrape.logout()
                 continue
 
