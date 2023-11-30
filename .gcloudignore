@@ -1,0 +1,4 @@
+!chromedriver
+!interaction_net/storages/users.csv
+!interaction_net/storages/grounds.csv
+!interaction_net/storages/schedules.csv

@@ -1,7 +1,9 @@
 .env
 all_users.csv
-interaction-net/storages/users.csv
-interaction-net/storages/grounds.csv
-interaction-net/storages/schedules.csv
-interaction-net/images
-interaction-net/__pycache__
+__pycache__
+interaction_net/storages/users.csv
+interaction_net/storages/grounds.csv
+interaction_net/storages/schedules.csv
+interaction_net/images
+interaction_net/__pycache__
+chromedriver

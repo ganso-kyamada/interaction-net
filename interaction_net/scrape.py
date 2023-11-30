@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,14 +12,14 @@ import re
 
 
 class Scrape:
+    debug_mode = False
+    driver = None
     user = ""
 
-    def __init__(self):
-        self.driver = webdriver.Remote(
-            command_executor="http://selenium:4444/wd/hub",
-            options=webdriver.ChromeOptions(),
-        )
-        self.driver.get(os.environ["URL"])
+    def __init__(self, url="", webdriver_path=None, debug_mode=False):
+        self.debug_mode = debug_mode
+        self.driver = self.__set_webdriver(webdriver_path)
+        self.driver.get(url)
         self.width = self.driver.execute_script("return document.body.scrollWidth")
         self.height = self.driver.execute_script("return document.body.scrollHeight")
 
@@ -115,6 +116,15 @@ class Scrape:
     def quit(self):
         self.driver.quit()
 
+    def __set_webdriver(self, webdriver_path):
+        service = Service(executable_path=webdriver_path)
+        options = webdriver.ChromeOptions()
+        options.binary_location = "/usr/bin/google-chrome"
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        return webdriver.Chrome(service=service, options=options)
+
     def __calender_match(self, date, since_date, until_date):
         is_match = False
         for link_tag in self.driver.find_elements(By.TAG_NAME, "a"):
@@ -145,6 +155,8 @@ class Scrape:
         return accept
 
     def __screenshot(self, name):
+        if self.debug_mode is False:
+            return
         filename = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), f"images/{name}_{self.user}.png"
         )

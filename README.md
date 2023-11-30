@@ -1,1 +1,1 @@
-# interaction-net
+# interaction_net
