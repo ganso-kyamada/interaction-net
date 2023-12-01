@@ -16,10 +16,7 @@ class IntarctionNet:
     def apply(self):
         scrape = Scrape(url=self.url, webdriver_path=self.webdriver_path, debug_mode=self.debug_mode)
         storage = Storage()
-        current_year = datetime.now().year
-        current_month = datetime.now().month
-        date = self.__find_fourth_saturday(current_year, current_month)
-
+        date = self.__find_date()
         debug_count = 0
         for user in storage.csv("users"):
             scrape.login(user["id"], user["pass"])
@@ -28,7 +25,7 @@ class IntarctionNet:
                 scrape.logout()
                 continue
 
-            if self.debug_mode is True and debug_count > 3:
+            if debug_count > 3:
                 break
 
             if self.debug_mode is True:
@@ -65,8 +62,10 @@ class IntarctionNet:
             time.sleep(random.randint(1, 10))
         scrape.quit()
 
-    def __find_fourth_saturday(self, year, month):
-        first_day_of_month = datetime(year, month, 1)
+    def __find_date(self):
+        current_date = datetime.now()
+        next_month = current_date.replace(day=1) + timedelta(days=32)
+        first_day_of_month = datetime(next_month.year, next_month.month, 1)
         weekday_of_first = first_day_of_month.weekday()
         days_until_first_saturday = (5 - weekday_of_first) % 7
         first_saturday = first_day_of_month + timedelta(days=days_until_first_saturday)

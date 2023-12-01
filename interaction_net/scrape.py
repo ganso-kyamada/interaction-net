@@ -55,7 +55,7 @@ class Scrape:
         self.driver.find_element(By.LINK_TEXT, ground_name).click()
 
     def calender(self, date, since_date, until_date):
-        print(f"INFO[{self.user}]: Calender")
+        print(f"INFO[{self.user}]: Calender {date}, {since_date}, {until_date}")
         self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
         is_match = False
         for i in range(4):
