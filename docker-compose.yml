@@ -2,7 +2,7 @@ version: '3'
 services:
   app:
     build: .
-    command: flask run --debug
+    command: functions-framework-python --target execute --debug
     ports:
       - 8080:8080
     volumes:
