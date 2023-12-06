@@ -14,84 +14,49 @@ from selenium.common.exceptions import UnexpectedAlertPresentException
 
 class IntarctionNet:
     def __init__(self, url="", webdriver_path=None, binary_location=None):
-        self.url = url
-        self.webdriver_path = webdriver_path
-        self.binary_location = binary_location
+        self.scrape = Scrape(
+            url=url, webdriver_path=webdriver_path, binary_location=binary_location
+        )
+        self.storage = Storage()
+        self.results = {"errors": []}
 
     def apply(self):
-        results = {"success": [], "errors": []}
-        scrape = Scrape(
-            url=self.url,
-            webdriver_path=self.webdriver_path,
-            binary_location=self.binary_location,
-            debug_mode=self.debug_mode,
-        )
-        storage = Storage()
+        self.results["success"] = []
         date = self.__find_date()
-        for user in storage.csv("users"):
-            try:
-                self.__execute_apply(scrape, storage, user, date)
-                results["success"].append(user["id"])
-            except (
-                TimeoutException,
-                NoSuchElementException,
-                NoAlertPresentException,
-                UnexpectedAlertPresentException,
-            ) as e:
-                logging.error(f"[{user}]: {e}")
-                results["errors"].append(f"{user}: {e}")
-                scrape.initialize()
-        scrape.quit()
-        return results
+        for user in self.__scrape_users():
+            self.__scrape_apply(user, date)
+            self.results["success"].append(user["id"])
+        return self.results
 
     def result(self):
-        results = {"accepted": [], "rejected": [], "errors": []}
-        scrape = Scrape(
-            url=self.url,
-            webdriver_path=self.webdriver_path,
-            binary_location=self.binary_location,
-        )
-        storage = Storage()
-        for user in storage.csv("users"):
-            try:
-                scrape.login(user["id"], user["pass"])
-                if scrape.result() is True:
-                    results["accepted"].append(user["id"])
-                else:
-                    results["rejected"].append(user["id"])
-                scrape.logout()
-            except (
-                TimeoutException,
-                NoSuchElementException,
-                NoAlertPresentException,
-                UnexpectedAlertPresentException,
-            ) as e:
-                logging.error(f"[{user}]: {e}")
-                results["errors"].append(f"{user}: {e}")
-                scrape.initialize()
-            time.sleep(random.randint(1, 10))
-        scrape.quit()
-        return results
+        self.results["accepted"] = []
+        self.results["rejected"] = []
+        for user in self.__scrape_users():
+            self.scrape.login(user["id"], user["pass"])
+            if self.scrape.result() is True:
+                self.results["accepted"].append(user["id"])
+            else:
+                self.results["rejected"].append(user["id"])
+            self.scrape.logout()
+        return self.results
 
     def test(self):
-        results = {"success": [], "errors": []}
-        scrape = Scrape(
-            url=self.url,
-            webdriver_path=self.webdriver_path,
-            binary_location=self.binary_location,
-        )
-        storage = Storage()
+        self.results["success"] = []
         count = 0
-        for user in storage.csv("users"):
+        for user in self.__scrape_users():
             count += 1
             if count > 3:
                 break
+            self.scrape.login(user["id"], user["pass"])
+            self.scrape.apply_menu()
+            self.scrape.logout()
+            self.results["success"].append(user["id"])
+        return self.results
 
+    def __scrape_users(self):
+        for user in self.storage.csv("users"):
             try:
-                scrape.login(user["id"], user["pass"])
-                scrape.apply_menu()
-                scrape.logout()
-                results["success"].append(user["id"])
+                yield user
             except (
                 TimeoutException,
                 NoSuchElementException,
@@ -99,34 +64,37 @@ class IntarctionNet:
                 UnexpectedAlertPresentException,
             ) as e:
                 logging.error(f"[{user}]: {e}")
-                results["errors"].append(f"{user}: {e}")
-                scrape.initialize()
-        scrape.quit()
-        return results
+                self.results["errors"].append(f"{user}: {e}")
+                self.scrape.initialize()
+            time.sleep(random.randint(1, 10))
+        self.scrape.quit()
 
-    def __execute_apply(self, scrape, storage, user, date):
-        scrape.login(user["id"], user["pass"])
+    def __scrape_apply(self, user, date):
+        self.scrape.login(user["id"], user["pass"])
 
-        if scrape.apply_menu() is False:
-            scrape.logout()
+        if self.scrape.apply_menu() is False:
+            self.scrape.logout()
             return
 
-        for ground in storage.csv("grounds"):
+        for ground in self.storage.csv("grounds"):
             purpose_type = "利用目的から"
-            for schedule in storage.csv("schedules"):
-                scrape.purpose_menu(
+            for schedule in self.storage.csv("schedules"):
+                self.scrape.purpose_menu(
                     purpose_type,
                     ground["sports_type"],
                     ground["sports_name"],
                     ground["name"],
                 )
-                if scrape.calender(date, schedule["start"], schedule["end"]) is False:
+                if (
+                    self.scrape.calender(date, schedule["start"], schedule["end"])
+                    is False
+                ):
                     continue
-                if scrape.apply(schedule["people"]) is False:
+                if self.scrape.apply(schedule["people"]) is False:
                     break
                 purpose_type = "目的から"
-        scrape.complete()
-        scrape.logout()
+        self.scrape.complete()
+        self.scrape.logout()
         time.sleep(random.randint(1, 10))
 
     def __find_date(self):

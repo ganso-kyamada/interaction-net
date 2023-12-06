@@ -8,6 +8,7 @@ from interaction_net.module import IntarctionNet
 
 @functions_framework.http
 def execute(request):
+    logging.basicConfig(level=logging.INFO)
     start_time = time.time()
     request_json = request.get_json(silent=True)
     url = os.environ["URL"]
