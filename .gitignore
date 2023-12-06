@@ -6,4 +6,7 @@ interaction_net/storages/grounds.csv
 interaction_net/storages/schedules.csv
 interaction_net/images
 interaction_net/__pycache__
-chromedriver
+!bin/.keep
+bin/chromedriver
+bin/headless-chromium
+bin/chrome_debug.log

@@ -1,5 +1,4 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -9,22 +8,28 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 import os
 import re
+import logging
 
 
 class Scrape:
+    WIN_COUNT = 4
+    url = ""
     debug_mode = False
     driver = None
     user = ""
 
-    def __init__(self, url="", webdriver_path=None, debug_mode=False):
-        self.debug_mode = debug_mode
-        self.driver = self.__set_webdriver(webdriver_path)
-        self.driver.get(url)
+    def __init__(self, url="", webdriver_path=None, binary_location=None):
+        self.url = url
+        self.driver = self.__set_webdriver(webdriver_path, binary_location)
+        self.initialize()
         self.width = self.driver.execute_script("return document.body.scrollWidth")
         self.height = self.driver.execute_script("return document.body.scrollHeight")
 
+    def initialize(self):
+        self.driver.get(self.url)
+
     def login(self, user, password):
-        print(f"INFO[{user}]: Login")
+        logging.info(f"[{user}]: Login")
         user_element = self.driver.find_element(By.ID, "userId")
         password_element = self.driver.find_element(By.ID, "pass")
         user_element.send_keys(user)
@@ -34,9 +39,9 @@ class Scrape:
 
     def apply_menu(self):
         apply_elements = self.driver.find_elements(By.LINK_TEXT, "抽選の申込み")
-        print(f"INFO[{self.user}]: ApplyMenu {len(apply_elements)}")
+        logging.info(f"[{self.user}]: ApplyMenu {len(apply_elements)}")
         if len(apply_elements) == 0:
-            self.__screenshot('alert')
+            # self.__screenshot('alert')
             self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
 
         try:
@@ -45,9 +50,8 @@ class Scrape:
             return False
         return True
 
-
     def purpose_menu(self, purpose_type, sports_type, sports_name, ground_name):
-        print(f"INFO[{self.user}]: PurposeMenu")
+        logging.info(f"[{self.user}]: PurposeMenu")
         self.driver.find_element(By.XPATH, f"//input[@value='{purpose_type}']").click()
         self.driver.find_element(By.LINK_TEXT, sports_type).click()
         self.driver.find_element(By.LINK_TEXT, sports_name).click()
@@ -55,7 +59,7 @@ class Scrape:
         self.driver.find_element(By.LINK_TEXT, ground_name).click()
 
     def calender(self, date, since_date, until_date):
-        print(f"INFO[{self.user}]: Calender {date}, {since_date}, {until_date}")
+        logging.info(f"[{self.user}]: Calender {date}, {since_date}, {until_date}")
         self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
         is_match = False
         for i in range(4):
@@ -66,7 +70,7 @@ class Scrape:
             try:
                 self.driver.find_element(By.XPATH, "//input[@value='前の週']").click()
             except NoSuchElementException:
-                print(f"INFO[{self.user}]: Not Match Calender")
+                logging.info(f"[{self.user}]: Not Match Calender")
 
         if is_match is True:
             self.driver.find_element(By.XPATH, "//input[@value='申込み']").click()
@@ -75,7 +79,7 @@ class Scrape:
         return is_match
 
     def apply(self, people):
-        print(f"INFO[{self.user}]: Apply")
+        logging.info(f"[{self.user}]: Apply")
         people_element = self.driver.find_element(By.ID, "applyPepopleNum")
         people_element.send_keys(people)
         self.driver.find_element(By.XPATH, "//input[@value='申込み']").click()
@@ -85,45 +89,54 @@ class Scrape:
         return self.__alert_accept(3) is False
 
     def complete(self):
-        print(f"INFO[{self.user}]: Complate")
+        logging.info(f"[{self.user}]: Complate")
         self.driver.find_element(By.LINK_TEXT, "ホーム").click()
         self.driver.find_element(By.LINK_TEXT, "抽選申込みの確認").click()
-        self.__screenshot("complete")
+        # self.__screenshot("complete")
 
     def result(self):
-        print(f"INFO[{self.user}]: Result")
+        logging.info(f"[{self.user}]: Result")
         result_elements = self.driver.find_elements(By.LINK_TEXT, "確認済の抽選結果")
         if len(result_elements) == 0:
-            self.__screenshot('alert')
+            # self.__screenshot('alert')
             self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
 
         self.driver.find_element(By.LINK_TEXT, "確認済の抽選結果").click()
         if self.__is_alert_present():
-            print(f"INFO[{self.user}]: Not Applied")
+            logging.info(f"[{self.user}]: Not Applied")
             self.__alert_accept(30)
-            return
+            return False
 
-        lose_elements = self.driver.find_elements(By.XPATH, "//*[contains(text(), '落選')]")
+        lose_elements = self.driver.find_elements(
+            By.XPATH, "//*[contains(text(), '落選')]"
+        )
         if len(lose_elements) == 4:
-            print(f"INFO[{self.user}]: All Lose...")
-            return
-        self.__screenshot("result")
+            logging.info(f"[{self.user}]: All Lose...")
+            return False
+        # self.__screenshot("result")
+        return True
 
     def logout(self):
         self.driver.find_element(By.XPATH, "//input[@value='ログアウト']").click()
-        print(f"INFO[{self.user}]: Logout!")
+        logging.info(f"[{self.user}]: Logout!")
 
     def quit(self):
         self.driver.quit()
 
-    def __set_webdriver(self, webdriver_path):
-        service = Service(executable_path=webdriver_path)
+    def __set_webdriver(self, webdriver_path, binary_location):
         options = webdriver.ChromeOptions()
-        options.binary_location = "/usr/bin/google-chrome"
+        options.binary_location = binary_location
         options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
+        options.add_argument("--hide-scrollbars")
+        options.add_argument("--enable-logging")
+        options.add_argument("--log-level=0")
+        options.add_argument("--v=99")
+        options.add_argument("--single-process")
+        options.add_argument("--ignore-certificate-errors")
         options.add_argument("--disable-dev-shm-usage")
-        return webdriver.Chrome(service=service, options=options)
+        return webdriver.Chrome(webdriver_path, options=options)
 
     def __calender_match(self, date, since_date, until_date):
         is_match = False
@@ -134,7 +147,7 @@ class Scrape:
 
             if date in href and since_date in href and until_date in href:
                 is_match = True
-                print(f"INFO[{self.user}]: Calender Match!!")
+                logging.info(f"[{self.user}]: Calender Match!!")
                 link_tag.click()
                 break
 
@@ -150,13 +163,11 @@ class Scrape:
         except TimeoutException:
             pass
         except Exception as e:
-            print(f"ERROR[{self.user}]: {e}")
+            logging.error(f"[{self.user}]: {e}")
 
         return accept
 
     def __screenshot(self, name):
-        if self.debug_mode is False:
-            return
         filename = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), f"images/{name}_{self.user}.png"
         )
