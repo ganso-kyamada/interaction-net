@@ -36,6 +36,7 @@ class IntarctionNet:
     def result(self):
         session = Session(bind=ENGINE)
         if self.__scraped_result(session) is True:
+            self.results["errors"].append("Already scraped.")
             return self.results
         lottery_result = LotteryResult(scrape_status="in_progress")
         session.add(lottery_result)
@@ -57,6 +58,9 @@ class IntarctionNet:
             session.add(lottery_result_user)
             session.commit()
             self.scrape.logout()
+        lottery_result.scrape_status = "completed"
+        session.add(lottery_result)
+        session.commit()
         return self.results
 
     def test(self):

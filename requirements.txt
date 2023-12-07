@@ -1,6 +1,6 @@
 functions-framework==3.*
 selenium==3.13.0
-psycopg2-binary
+psycopg2
 sqlalchemy
 sqlalchemy-cockroachdb
 black
