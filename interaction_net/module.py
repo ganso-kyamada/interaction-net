@@ -4,6 +4,10 @@ import sys, getopt
 import os
 import logging
 from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from interaction_net.models.base import Base, ENGINE
+from interaction_net.models.lottery_result import LotteryResult
+from interaction_net.models.lottery_result_user import LotteryResultUser
 from interaction_net.scrape import Scrape
 from interaction_net.storage import Storage
 from selenium.common.exceptions import TimeoutException
@@ -19,6 +23,7 @@ class IntarctionNet:
         )
         self.storage = Storage()
         self.results = {"errors": []}
+        Base.metadata.create_all(bind=ENGINE)
 
     def apply(self):
         self.results["success"] = []
@@ -29,14 +34,28 @@ class IntarctionNet:
         return self.results
 
     def result(self):
+        session = Session(bind=ENGINE)
+        if self.__scraped_result(session) is True:
+            return self.results
+        lottery_result = LotteryResult(scrape_status="in_progress")
+        session.add(lottery_result)
+        session.commit()
+
         self.results["accepted"] = []
         self.results["rejected"] = []
         for user in self.__scrape_users():
+            lottery_result_user = LotteryResultUser(
+                lottery_result_id=lottery_result.id, user_uuid=user["id"]
+            )
             self.scrape.login(user["id"], user["pass"])
             if self.scrape.result() is True:
                 self.results["accepted"].append(user["id"])
+                lottery_result_user.is_winner = True
             else:
                 self.results["rejected"].append(user["id"])
+                lottery_result_user.is_winner = False
+            session.add(lottery_result_user)
+            session.commit()
             self.scrape.logout()
         return self.results
 
@@ -68,6 +87,16 @@ class IntarctionNet:
                 self.scrape.initialize()
             time.sleep(random.randint(1, 10))
         self.scrape.quit()
+
+    def __scraped_result(self, session):
+        current_date = datetime.now()
+        first_day_of_month = datetime(current_date.year, current_date.month, 1)
+        lottery_result = (
+            session.query(LotteryResult)
+            .filter(LotteryResult.created_at >= first_day_of_month)
+            .first()
+        )
+        return lottery_result is not None
 
     def __scrape_apply(self, user, date):
         self.scrape.login(user["id"], user["pass"])
