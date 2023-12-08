@@ -11,3 +11,23 @@ class LotteryResultUser(Base):
     is_winner = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    def win(self, session):
+        """
+        当選したことを記録する
+
+        :param session: SQLAlchemy セッション
+        :return: None
+        """
+        self.is_winner = True
+        session.commit()
+
+    def lose(self, session):
+        """
+        落選したことを記録する
+
+        :param session: SQLAlchemy セッション
+        :return: None
+        """
+        self.is_winner = False
+        session.commit()

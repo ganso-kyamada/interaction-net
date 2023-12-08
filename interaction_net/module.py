@@ -6,6 +6,8 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from interaction_net.models.base import Base, ENGINE
+from interaction_net.models.lottery_apply import LotteryApply
+from interaction_net.models.lottery_apply_user import LotteryApplyUser
 from interaction_net.models.lottery_result import LotteryResult
 from interaction_net.models.lottery_result_user import LotteryResultUser
 from interaction_net.scrape import Scrape
@@ -26,44 +28,62 @@ class IntarctionNet:
         Base.metadata.create_all(bind=ENGINE)
 
     def apply(self):
-        self.results["success"] = []
+        """
+        抽選の申し込みを行う
+        """
         date = self.__find_date()
+        session = Session(bind=ENGINE)
+        if LotteryApply.is_scraped(session) is True:
+            self.results["errors"].append("Already scraped.")
+            return self.results
+        lottery_apply = LotteryApply.create_with_users(
+            session, date, self.storage.csv("users")
+        )
+
+        self.results["success"] = []
         for user in self.__scrape_users():
-            self.__scrape_apply(user, date)
+            lottery_apply_user = lottery_apply.find_pending_lottery_apply_user(
+                session, user["id"]
+            )
+            if lottery_apply_user is None:
+                continue
+            lottery_apply_user.update_scrape_status(session, "in_progress")
+            self.__scrape_apply(user, date.strftime("%Y%m%d"))
+            lottery_apply_user.update_scrape_status(session, "completed")
             self.results["success"].append(user["id"])
         return self.results
 
     def result(self):
+        """
+        抽選結果を取得する
+        """
         session = Session(bind=ENGINE)
-        if self.__scraped_result(session) is True:
+        if LotteryResult.is_scraped(session) is True:
             self.results["errors"].append("Already scraped.")
             return self.results
-        lottery_result = LotteryResult(scrape_status="in_progress")
-        session.add(lottery_result)
-        session.commit()
+        lottery_result = LotteryResult.create_in_progress(session)
 
         self.results["accepted"] = []
         self.results["rejected"] = []
         for user in self.__scrape_users():
-            lottery_result_user = LotteryResultUser(
-                lottery_result_id=lottery_result.id, user_uuid=user["id"]
+            lottery_result_user = lottery_result.create_lottery_result_user(
+                session, user["id"]
             )
             self.scrape.login(user["id"], user["pass"])
             if self.scrape.result() is True:
                 self.results["accepted"].append(user["id"])
-                lottery_result_user.is_winner = True
+                lottery_result_user.win(session)
             else:
                 self.results["rejected"].append(user["id"])
-                lottery_result_user.is_winner = False
-            session.add(lottery_result_user)
-            session.commit()
+                lottery_result_user.lose(session)
             self.scrape.logout()
-        lottery_result.scrape_status = "completed"
-        session.add(lottery_result)
-        session.commit()
+        lottery_result.completed(session)
         return self.results
 
     def test(self):
+        """
+        WebDriverのテストを行う
+        """
         self.results["success"] = []
         count = 0
         for user in self.__scrape_users():
@@ -77,6 +97,11 @@ class IntarctionNet:
         return self.results
 
     def __scrape_users(self):
+        """
+        ユーザー情報をスクレイピングする
+
+        :return: ユーザー情報
+        """
         for user in self.storage.csv("users"):
             try:
                 yield user
@@ -92,17 +117,13 @@ class IntarctionNet:
             time.sleep(random.randint(1, 10))
         self.scrape.quit()
 
-    def __scraped_result(self, session):
-        current_date = datetime.now()
-        first_day_of_month = datetime(current_date.year, current_date.month, 1)
-        lottery_result = (
-            session.query(LotteryResult)
-            .filter(LotteryResult.created_at >= first_day_of_month)
-            .first()
-        )
-        return lottery_result is not None
-
     def __scrape_apply(self, user, date):
+        """
+        申し込みをスクレイピングする
+
+        :param user: ユーザー情報
+        :param date: 日付
+        """
         self.scrape.login(user["id"], user["pass"])
 
         if self.scrape.apply_menu() is False:
@@ -131,6 +152,12 @@ class IntarctionNet:
         time.sleep(random.randint(1, 10))
 
     def __find_date(self):
+        """
+        申し込み日を取得する
+        申し込み日は毎月第4土曜日とする
+
+        :return: 申し込み日
+        """
         current_date = datetime.now()
         next_month = current_date.replace(day=1) + timedelta(days=32)
         first_day_of_month = datetime(next_month.year, next_month.month, 1)
@@ -138,4 +165,4 @@ class IntarctionNet:
         days_until_first_saturday = (5 - weekday_of_first) % 7
         first_saturday = first_day_of_month + timedelta(days=days_until_first_saturday)
         fourth_saturday = first_saturday + timedelta(weeks=3)
-        return fourth_saturday.strftime("%Y%m%d")
+        return fourth_saturday
