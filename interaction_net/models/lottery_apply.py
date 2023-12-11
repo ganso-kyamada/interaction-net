@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ENUM
 from datetime import datetime
 from interaction_net.models.base import Base
-
+from interaction_net.models.lottery_apply_user import LotteryApplyUser
 
 class LotteryApply(Base):
     __tablename__ = "lottery_applies"

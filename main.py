@@ -14,10 +14,11 @@ def execute(request):
     url = os.environ["URL"]
     webdriver_path = os.getcwd() + "/bin/chromedriver"
     binary_location = os.getcwd() + "/bin/headless-chromium"
+    force = request_json["force"] if "force" in request_json else False
 
-    interaction_net = IntarctionNet(url, webdriver_path, binary_location)
+    interaction_net = IntarctionNet(url, webdriver_path, binary_location, force)
     logging.info(request_json)
-    logging.info(f"webdriver_path {webdriver_path}, binary_location {binary_location}")
+    logging.info(f"webdriver_path {webdriver_path}, binary_location {binary_location}, force {force}")
     results = {}
     if request_json and "action" in request_json:
         if request_json["action"] == "apply":

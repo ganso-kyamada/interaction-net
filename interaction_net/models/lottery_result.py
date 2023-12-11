@@ -4,6 +4,7 @@ from sqlalchemy.dialects.postgresql import ENUM
 from datetime import datetime
 from interaction_net.models.base import Base
 from interaction_net.models.enums import SCRAPE_STATUS_ENUM
+from interaction_net.models.lottery_result_user import LotteryResultUser
 
 
 class LotteryResult(Base):

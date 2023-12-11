@@ -41,7 +41,7 @@ class Scrape:
         apply_elements = self.driver.find_elements(By.LINK_TEXT, "抽選の申込み")
         logging.info(f"[{self.user}]: ApplyMenu {len(apply_elements)}")
         if len(apply_elements) == 0:
-            # self.__screenshot('alert')
+            # self.screenshot('alert')
             self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
 
         try:
@@ -92,13 +92,13 @@ class Scrape:
         logging.info(f"[{self.user}]: Complate")
         self.driver.find_element(By.LINK_TEXT, "ホーム").click()
         self.driver.find_element(By.LINK_TEXT, "抽選申込みの確認").click()
-        # self.__screenshot("complete")
+        # self.screenshot("complete")
 
     def result(self):
         logging.info(f"[{self.user}]: Result")
         result_elements = self.driver.find_elements(By.LINK_TEXT, "確認済の抽選結果")
         if len(result_elements) == 0:
-            # self.__screenshot('alert')
+            # self.screenshot('alert')
             self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
 
         self.driver.find_element(By.LINK_TEXT, "確認済の抽選結果").click()
@@ -113,7 +113,6 @@ class Scrape:
         if len(lose_elements) == 4:
             logging.info(f"[{self.user}]: All Lose...")
             return False
-        # self.__screenshot("result")
         return True
 
     def logout(self):
@@ -167,10 +166,11 @@ class Scrape:
 
         return accept
 
-    def __screenshot(self, name):
+    def screenshot(self, name):
         filename = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), f"images/{name}_{self.user}.png"
         )
+        logging.info(f"[{self.user}]: Screenshot {filename}")
         self.driver.set_window_size(self.width, self.height)
         self.driver.save_screenshot(filename)
 

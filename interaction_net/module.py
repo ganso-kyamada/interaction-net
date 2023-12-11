@@ -19,11 +19,12 @@ from selenium.common.exceptions import UnexpectedAlertPresentException
 
 
 class IntarctionNet:
-    def __init__(self, url="", webdriver_path=None, binary_location=None):
+    def __init__(self, url="", webdriver_path=None, binary_location=None, force=False):
         self.scrape = Scrape(
             url=url, webdriver_path=webdriver_path, binary_location=binary_location
         )
         self.storage = Storage()
+        self.force = force
         self.results = {"errors": []}
         Base.metadata.create_all(bind=ENGINE)
 
@@ -58,7 +59,7 @@ class IntarctionNet:
         抽選結果を取得する
         """
         session = Session(bind=ENGINE)
-        if LotteryResult.is_scraped(session) is True:
+        if self.force is False and LotteryResult.is_scraped(session) is True:
             self.results["errors"].append("Already scraped.")
             return self.results
         lottery_result = LotteryResult.create_in_progress(session)
@@ -88,10 +89,11 @@ class IntarctionNet:
         count = 0
         for user in self.__scrape_users():
             count += 1
-            if count > 3:
+            if self.force is False and count > 3:
                 break
             self.scrape.login(user["id"], user["pass"])
-            self.scrape.apply_menu()
+            self.scrape.result()
+            self.scrape.screenshot("result")
             self.scrape.logout()
             self.results["success"].append(user["id"])
         return self.results
