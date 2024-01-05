@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, desc
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ENUM
 from datetime import datetime
 from interaction_net.models.base import Base
 from interaction_net.models.lottery_apply_user import LotteryApplyUser
+
 
 class LotteryApply(Base):
     __tablename__ = "lottery_applies"
@@ -51,6 +52,16 @@ class LotteryApply(Base):
             session.query(cls).filter(cls.created_at >= first_day_of_month).first()
             is not None
         )
+
+    @classmethod
+    def last(cls, session):
+        """
+        最後の値を取得する
+
+        :param session: SQLAlchemy セッション
+        :return: LotteryApply
+        """
+        return session.query(cls).order_by(desc(cls.id)).first()
 
     def find_pending_lottery_apply_user(self, session, user_uuid):
         """

@@ -28,17 +28,23 @@ class IntarctionNet:
         self.results = {"errors": []}
         Base.metadata.create_all(bind=ENGINE)
 
-    def apply(self):
+    def apply(self, weeks=4, is_last=False):
         """
         抽選の申し込みを行う
         """
-        date = self.__find_date()
+        date = self.__find_date(weeks)
+        logging.info(f"Date: {date}")
         session = Session(bind=ENGINE)
-        if LotteryApply.is_scraped(session) is True:
+
+        if is_last is False and LotteryApply.is_scraped(session) is True:
             self.results["errors"].append("Already scraped.")
             return self.results
-        lottery_apply = LotteryApply.create_with_users(
-            session, date, self.storage.csv("users")
+        lottery_apply = (
+            LotteryApply.last(session)
+            if is_last
+            else LotteryApply.create_with_users(
+                session, date, self.storage.csv("users")
+            )
         )
 
         self.results["success"] = []
@@ -153,11 +159,11 @@ class IntarctionNet:
         self.scrape.logout()
         time.sleep(random.randint(1, 10))
 
-    def __find_date(self):
+    def __find_date(self, weeks):
         """
         申し込み日を取得する
-        申し込み日は毎月第4土曜日とする
 
+        :param weeks: 申込日を第何週の土曜日にするか
         :return: 申し込み日
         """
         current_date = datetime.now()
@@ -166,5 +172,7 @@ class IntarctionNet:
         weekday_of_first = first_day_of_month.weekday()
         days_until_first_saturday = (5 - weekday_of_first) % 7
         first_saturday = first_day_of_month + timedelta(days=days_until_first_saturday)
-        fourth_saturday = first_saturday + timedelta(weeks=3)
+
+        weeks = weeks - 1
+        fourth_saturday = first_saturday + timedelta(weeks=weeks)
         return fourth_saturday
