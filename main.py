@@ -14,13 +14,10 @@ def execute(request):
     url = os.environ["URL"]
     webdriver_path = os.getcwd() + "/bin/chromedriver"
     binary_location = os.getcwd() + "/bin/headless-chromium"
-    force = request_json["force"] if "force" in request_json else False
 
-    interaction_net = IntarctionNet(url, webdriver_path, binary_location, force)
+    interaction_net = IntarctionNet(url, webdriver_path, binary_location)
     logging.info(request_json)
-    logging.info(
-        f"webdriver_path {webdriver_path}, binary_location {binary_location}, force {force}"
-    )
+    logging.info(f"webdriver_path {webdriver_path}, binary_location {binary_location}")
     results = {}
     if request_json is None or "action" not in request_json:
         results["status"] = "error"
@@ -30,10 +27,11 @@ def execute(request):
     match request_json["action"]:
         case "apply":
             weeks = request_json["weeks"] if "weeks" in request_json else 4
-            is_last = request_json["is_last"] if "is_last" in request_json else False
-            results["data"] = interaction_net.apply(weeks, is_last)
+            is_retry = request_json["is_retry"] if "is_retry" in request_json else False
+            results["data"] = interaction_net.apply(weeks, is_retry)
         case "result":
-            results["data"] = interaction_net.result()
+            is_retry = request_json["is_retry"] if "is_retry" in request_json else False
+            results["data"] = interaction_net.result(is_retry)
         case "test":
             results["data"] = interaction_net.test()
 

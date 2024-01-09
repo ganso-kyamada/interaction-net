@@ -19,16 +19,15 @@ from selenium.common.exceptions import UnexpectedAlertPresentException
 
 
 class IntarctionNet:
-    def __init__(self, url="", webdriver_path=None, binary_location=None, force=False):
+    def __init__(self, url="", webdriver_path=None, binary_location=None):
         self.scrape = Scrape(
             url=url, webdriver_path=webdriver_path, binary_location=binary_location
         )
         self.storage = Storage()
-        self.force = force
         self.results = {"errors": []}
         Base.metadata.create_all(bind=ENGINE)
 
-    def apply(self, weeks=4, is_last=False):
+    def apply(self, weeks=4, is_retry=False):
         """
         抽選の申し込みを行う
         """
@@ -36,12 +35,12 @@ class IntarctionNet:
         logging.info(f"Date: {date}")
         session = Session(bind=ENGINE)
 
-        if is_last is False and LotteryApply.is_scraped(session) is True:
+        if is_retry is False and LotteryApply.is_scraped(session) is True:
             self.results["errors"].append("Already scraped.")
             return self.results
         lottery_apply = (
             LotteryApply.last(session)
-            if is_last
+            if is_retry
             else LotteryApply.create_with_users(
                 session, date, self.storage.csv("users")
             )
@@ -54,29 +53,46 @@ class IntarctionNet:
             )
             if lottery_apply_user is None:
                 continue
+
             lottery_apply_user.update_scrape_status(session, "in_progress")
-            self.__scrape_apply(user, date.strftime("%Y%m%d"))
-            lottery_apply_user.update_scrape_status(session, "completed")
+            if self.__scrape_apply(user, date.strftime("%Y%m%d")):
+                lottery_apply_user.update_scrape_status(session, "completed")
+            else:
+                lottery_apply_user.update_scrape_status(session, "error")
             self.results["success"].append(user["id"])
         return self.results
 
-    def result(self):
+    def result(self, is_retry=False):
         """
         抽選結果を取得する
         """
         session = Session(bind=ENGINE)
-        if self.force is False and LotteryResult.is_scraped(session) is True:
+        if is_retry is False and LotteryResult.is_scraped(session) is True:
             self.results["errors"].append("Already scraped.")
             return self.results
-        lottery_result = LotteryResult.create_in_progress(session)
+        lottery_result = (
+            LotteryResult.last(session)
+            if is_retry
+            else LotteryResult.create_with_users(session)
+        )
 
         self.results["accepted"] = []
         self.results["rejected"] = []
         for user in self.__scrape_users():
-            lottery_result_user = lottery_result.create_lottery_result_user(
-                session, user["id"]
-            )
-            self.scrape.login(user["id"], user["pass"])
+            lottery_result_user = lottery_result.find_by_id(session, user["id"])
+
+            if lottery_result_user is None:
+                lottery_result_user = lottery_result.create_lottery_result_user(
+                    session, user["id"]
+                )
+            else:
+                logging.info(f"SKIP!! {lottery_result_user.user_uuid}")
+                continue
+
+            if self.scrape.login(user["id"], user["pass"]) is False:
+                lottery_result_user.lose(session)
+                continue
+
             if self.scrape.result() is True:
                 self.results["accepted"].append(user["id"])
                 lottery_result_user.win(session)
@@ -95,9 +111,10 @@ class IntarctionNet:
         count = 0
         for user in self.__scrape_users():
             count += 1
-            if self.force is False and count > 3:
+            if count > 3:
                 break
-            self.scrape.login(user["id"], user["pass"])
+            if self.scrape.login(user["id"], user["pass"]) is False:
+                continue
             self.scrape.result()
             self.scrape.screenshot("result")
             self.scrape.logout()
@@ -131,12 +148,14 @@ class IntarctionNet:
 
         :param user: ユーザー情報
         :param date: 日付
+        :return: bool
         """
-        self.scrape.login(user["id"], user["pass"])
+        if self.scrape.login(user["id"], user["pass"]) is False:
+            return False
 
         if self.scrape.apply_menu() is False:
             self.scrape.logout()
-            return
+            return False
 
         for ground in self.storage.csv("grounds"):
             purpose_type = "利用目的から"
@@ -158,6 +177,7 @@ class IntarctionNet:
         self.scrape.complete()
         self.scrape.logout()
         time.sleep(random.randint(1, 10))
+        return True
 
     def __find_date(self, weeks):
         """

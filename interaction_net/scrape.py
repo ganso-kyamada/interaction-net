@@ -35,7 +35,12 @@ class Scrape:
         user_element.send_keys(user)
         password_element.send_keys(password)
         password_element.send_keys(Keys.ENTER)
+        if self.__is_alert_present():
+            logging.info(f"[{self.user}]: Not Applied")
+            self.__alert_accept(30)
+            return False
         self.user = user
+        return True
 
     def apply_menu(self):
         apply_elements = self.driver.find_elements(By.LINK_TEXT, "抽選の申込み")

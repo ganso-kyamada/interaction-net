@@ -10,3 +10,5 @@ interaction_net/__pycache__
 bin/chromedriver
 bin/headless-chromium
 bin/chrome_debug.log
+examplePolicy.json
+

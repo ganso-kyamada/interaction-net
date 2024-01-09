@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, desc
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ENUM
 from datetime import datetime
@@ -43,6 +43,16 @@ class LotteryResult(Base):
         session.commit()
         return lottery_result
 
+    @classmethod
+    def last(cls, session):
+        """
+        最後の値を取得する
+
+        :param session: SQLAlchemy セッション
+        :return: LotteryResult
+        """
+        return session.query(cls).order_by(desc(cls.id)).first()
+
     def completed(self, session):
         """
         スクレイピングが完了したことを記録する
@@ -67,3 +77,19 @@ class LotteryResult(Base):
         session.add(lottery_result_user)
         session.commit()
         return lottery_result_user
+
+    def find_by_id(self, session, user_uuid):
+        """
+        LotteryApplyUserを取得する
+
+        :param session: SQLAlchemy セッション
+        :param user_uuid: ユーザーUUID
+        :return: LotteryResultUser
+        """
+        return (
+            session.query(LotteryResultUser)
+            .filter_by(
+                lottery_result_id=self.id, user_uuid=user_uuid
+            )
+            .first()
+        )
