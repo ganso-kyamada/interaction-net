@@ -35,21 +35,22 @@ class IntarctionNet:
         logging.info(f"Date: {date}")
         session = Session(bind=ENGINE)
 
-        if is_retry is False and LotteryApply.is_scraped(session) is True:
+        lottery_apply = LotteryApply.find_by_date(session, date)
+        if is_retry is False and lottery_apply is not None:
             self.results["errors"].append("Already scraped.")
             return self.results
-        lottery_apply = (
-            LotteryApply.last(session)
-            if is_retry
-            else LotteryApply.create_with_users(
-                session, date, self.storage.csv("users")
-            )
-        )
+        if lottery_apply is None:
+            if is_retry is False:
+                lottery_apply = LotteryApply.create_with_users(
+                    session, date, self.storage.csv("users")
+                )
+            else:
+                lottery_apply = LotteryApply.last(session)
 
         self.results["success"] = []
         for user in self.__scrape_users():
-            lottery_apply_user = lottery_apply.find_pending_lottery_apply_user(
-                session, user["id"]
+            lottery_apply_user = lottery_apply.find_lottery_apply_user_by_scrape_status(
+                session, user["id"], "pending"
             )
             if lottery_apply_user is None:
                 continue
@@ -101,6 +102,40 @@ class IntarctionNet:
                 lottery_result_user.lose(session)
             self.scrape.logout()
         lottery_result.completed(session)
+        return self.results
+
+    def cancel(self):
+        """
+        申し込みをキャンセルする
+        """
+        session = Session(bind=ENGINE)
+
+        if LotteryApply.is_scraped(session) is False:
+            self.results["errors"].append("Not scraped.")
+            return self.results
+
+        lottery_apply = LotteryApply.last(session)
+        if lottery_apply is None:
+            self.results["errors"].append("Not found.")
+            return self.results
+
+        self.results["success"] = []
+        self.results["skiped"] = []
+        for user in self.__scrape_users():
+            lottery_apply_user = lottery_apply.find_lottery_apply_user_by_scrape_status(
+                session, user["id"], "completed"
+            )
+            if lottery_apply_user is None:
+                continue
+            if self.scrape.login(user["id"], user["pass"]) is False:
+                continue
+
+            if self.scrape.cancel() is True:
+                self.results["success"].append(user["id"])
+                lottery_apply_user.update_scrape_status(session, "canceled")
+            else:
+                self.results["skiped"].append(user["id"])
+            self.scrape.logout()
         return self.results
 
     def test(self):

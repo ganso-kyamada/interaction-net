@@ -63,18 +63,34 @@ class LotteryApply(Base):
         """
         return session.query(cls).order_by(desc(cls.id)).first()
 
-    def find_pending_lottery_apply_user(self, session, user_uuid):
+    @classmethod
+    def find_by_date(cls, session, date):
         """
-        pending状態のLotteryApplyUserを取得する
+        日付でLotteryApplyを取得する
+
+        :param session: SQLAlchemy セッション
+        :param date: 日付
+        :return: LotteryApply
+        """
+        return session.query(cls).filter(cls.date == date).first()
+
+    def find_lottery_apply_user_by_scrape_status(
+        self, session, user_uuid, scrape_status
+    ):
+        """
+        scrape_statusが同じLotteryApplyUserを取得する
 
         :param session: SQLAlchemy セッション
         :param user_uuid: ユーザーUUID
+        :param scrape_status: スクレイピング結果
         :return: LotteryApplyUser
         """
         return (
             session.query(LotteryApplyUser)
             .filter_by(
-                lottery_apply_id=self.id, user_uuid=user_uuid, scrape_status="pending"
+                lottery_apply_id=self.id,
+                user_uuid=user_uuid,
+                scrape_status=scrape_status,
             )
             .first()
         )

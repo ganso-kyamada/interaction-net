@@ -43,12 +43,8 @@ class Scrape:
         return True
 
     def apply_menu(self):
-        apply_elements = self.driver.find_elements(By.LINK_TEXT, "抽選の申込み")
-        logging.info(f"[{self.user}]: ApplyMenu {len(apply_elements)}")
-        if len(apply_elements) == 0:
-            # self.screenshot('alert')
-            self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
-
+        logging.info(f"[{self.user}]: ApplyMenu")
+        self.__to_home("抽選の申込み")
         try:
             self.driver.find_element(By.LINK_TEXT, "抽選の申込み").click()
         except NoSuchElementException:
@@ -101,11 +97,7 @@ class Scrape:
 
     def result(self):
         logging.info(f"[{self.user}]: Result")
-        result_elements = self.driver.find_elements(By.LINK_TEXT, "確認済の抽選結果")
-        if len(result_elements) == 0:
-            # self.screenshot('alert')
-            self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
-
+        self.__to_home("確認済の抽選結果")
         self.driver.find_element(By.LINK_TEXT, "確認済の抽選結果").click()
         if self.__is_alert_present():
             logging.info(f"[{self.user}]: Not Applied")
@@ -124,6 +116,27 @@ class Scrape:
         self.driver.find_element(By.XPATH, "//input[@value='ログアウト']").click()
         logging.info(f"[{self.user}]: Logout!")
 
+    def cancel(self):
+        logging.info(f"[{self.user}]: Cancel")
+        self.__to_home("抽選申込みの取消")
+        self.driver.find_element(By.LINK_TEXT, "抽選申込みの取消").click()
+        if self.__is_alert_present():
+            logging.info(f"[{self.user}]: Not Applied")
+            self.__alert_accept(30)
+            return False
+
+        checkbox_ids = ["checkcancel0", "checkcancel1", "checkcancel2", "checkcancel3"]
+        for checkbox_id in checkbox_ids:
+            try:
+                checkbox = self.driver.find_element(By.ID, checkbox_id)
+                if not checkbox.is_selected():
+                    checkbox.click()
+            except NoSuchElementException:
+                break
+        self.driver.find_element(By.XPATH, "//input[@value='取消']").click()
+        self.__alert_accept(30)
+        return True
+
     def quit(self):
         self.driver.quit()
 
@@ -141,6 +154,12 @@ class Scrape:
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--disable-dev-shm-usage")
         return webdriver.Chrome(webdriver_path, options=options)
+
+    def __to_home(self, element_name):
+        elements = self.driver.find_elements(By.LINK_TEXT, element_name)
+        if len(elements) == 0:
+            # self.screenshot('alert')
+            self.driver.find_element(By.XPATH, "//input[@value='次へ']").click()
 
     def __calender_match(self, date, since_date, until_date):
         is_match = False

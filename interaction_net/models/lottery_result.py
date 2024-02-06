@@ -88,8 +88,6 @@ class LotteryResult(Base):
         """
         return (
             session.query(LotteryResultUser)
-            .filter_by(
-                lottery_result_id=self.id, user_uuid=user_uuid
-            )
+            .filter_by(lottery_result_id=self.id, user_uuid=user_uuid)
             .first()
         )

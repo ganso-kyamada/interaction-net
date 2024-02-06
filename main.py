@@ -32,6 +32,8 @@ def execute(request):
         case "result":
             is_retry = request_json["is_retry"] if "is_retry" in request_json else False
             results["data"] = interaction_net.result(is_retry)
+        case "cancel":
+            results["data"] = interaction_net.cancel()
         case "test":
             results["data"] = interaction_net.test()
 

@@ -5,6 +5,7 @@ SCRAPE_STATUS_ENUM = ENUM(
     "in_progress",
     "completed",
     "error",
+    "canceled",
     name="scrape_status_types",
     create_type=True,
 )
