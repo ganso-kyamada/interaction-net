@@ -94,3 +94,13 @@ class LotteryApply(Base):
             )
             .first()
         )
+
+    def create_lottery_apply_user(self, session, user_uuid):
+        """
+        LotteryApplyUserを作成する
+
+        :param session: SQLAlchemy セッション
+        :param user_uuid: ユーザーUUID
+        :return: LotteryApplyUser
+        """
+        return LotteryApplyUser.create(session, self.id, user_uuid)

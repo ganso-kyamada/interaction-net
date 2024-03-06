@@ -53,7 +53,12 @@ class IntarctionNet:
                 session, user["id"], "pending"
             )
             if lottery_apply_user is None:
-                continue
+                if is_retry is True:
+                    lottery_apply_user = lottery_apply.create_lottery_apply_user(
+                        session, user["id"]
+                    )
+                else:
+                    continue
 
             lottery_apply_user.update_scrape_status(session, "in_progress")
             if self.__scrape_apply(user, date.strftime("%Y%m%d")):
