@@ -204,7 +204,8 @@ class IntarctionNet:
                     purpose_type,
                     ground["sports_type"],
                     ground["sports_name"],
-                    ground["name"],
+                    ground["ground_type"],
+                    schedule["ground_name"]
                 )
                 if (
                     self.scrape.calender(date, schedule["start"], schedule["end"])

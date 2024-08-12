@@ -51,12 +51,16 @@ class Scrape:
             return False
         return True
 
-    def purpose_menu(self, purpose_type, sports_type, sports_name, ground_name):
+    def purpose_menu(self, purpose_type, sports_type, sports_name, ground_type, ground_name):
         logging.info(f"[{self.user}]: PurposeMenu")
         self.driver.find_element(By.XPATH, f"//input[@value='{purpose_type}']").click()
         self.driver.find_element(By.LINK_TEXT, sports_type).click()
         self.driver.find_element(By.LINK_TEXT, sports_name).click()
-        self.driver.find_element(By.XPATH, "//input[@value='申込み']").click()
+        rows = self.driver.find_elements(By.XPATH, "//tbody/tr")
+        for row in rows:
+            if ground_type in row.text:
+                row.find_element(By.XPATH, ".//input[@value='申込み']").click()
+                break
         self.driver.find_element(By.LINK_TEXT, ground_name).click()
 
     def calender(self, date, since_date, until_date):
