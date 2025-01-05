@@ -65,15 +65,15 @@ class Scrape:
 
     def calender(self, date, since_date, until_date):
         logging.info(f"[{self.user}]: Calender {date}, {since_date}, {until_date}")
-        self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
+        # self.driver.find_element(By.XPATH, "//input[@value='最終週']").click()
         is_match = False
-        for i in range(4):
+        for i in range(5):
             is_match = self.__calender_match(date, since_date, until_date)
             if is_match is True:
                 break
 
             try:
-                self.driver.find_element(By.XPATH, "//input[@value='前の週']").click()
+                self.driver.find_element(By.XPATH, "//input[@value='次の週']").click()
             except NoSuchElementException:
                 logging.info(f"[{self.user}]: Not Match Calender")
 
