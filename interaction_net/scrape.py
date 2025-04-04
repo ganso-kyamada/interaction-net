@@ -148,14 +148,7 @@ class Scrape:
         options = webdriver.ChromeOptions()
         options.binary_location = binary_location
         options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
-        options.add_argument("--hide-scrollbars")
-        options.add_argument("--enable-logging")
-        options.add_argument("--log-level=0")
-        options.add_argument("--v=99")
-        options.add_argument("--single-process")
-        options.add_argument("--ignore-certificate-errors")
         options.add_argument("--disable-dev-shm-usage")
         return webdriver.Chrome(webdriver_path, options=options)
 

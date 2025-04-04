@@ -3,26 +3,28 @@ import os
 import time
 import logging
 import functions_framework
-from interaction_net.module import IntarctionNet
+from interaction_net.module import InteractionNet
 
 
 @functions_framework.http
 def execute(request):
     logging.basicConfig(level=logging.INFO)
     start_time = time.time()
+    logging.info(f"Start time: {start_time}")
     request_json = request.get_json(silent=True)
-    url = os.environ["URL"]
-    webdriver_path = os.getcwd() + "/bin/chromedriver"
-    binary_location = os.getcwd() + "/bin/headless-chromium"
-
-    interaction_net = IntarctionNet(url, webdriver_path, binary_location)
     logging.info(request_json)
-    logging.info(f"webdriver_path {webdriver_path}, binary_location {binary_location}")
+
     results = {}
     if request_json is None or "action" not in request_json:
         results["status"] = "error"
         results["error"] = f"Invalid action: {request_json}"
         return jsonify(results)
+
+    url = os.environ["URL"]
+    webdriver_path = os.getcwd() + "/bin/chromedriver"
+    binary_location = os.getcwd() + "/bin/headless-chromium"
+    interaction_net = InteractionNet(url, webdriver_path, binary_location)
+    logging.info(f"webdriver_path {webdriver_path}, binary_location {binary_location}")
 
     match request_json["action"]:
         case "apply":

@@ -18,7 +18,7 @@ from selenium.common.exceptions import NoAlertPresentException
 from selenium.common.exceptions import UnexpectedAlertPresentException
 
 
-class IntarctionNet:
+class InteractionNet:
     def __init__(self, url="", webdriver_path=None, binary_location=None):
         self.scrape = Scrape(
             url=url, webdriver_path=webdriver_path, binary_location=binary_location
@@ -125,7 +125,7 @@ class IntarctionNet:
             return self.results
 
         self.results["success"] = []
-        self.results["skiped"] = []
+        self.results["skipped"] = []
         for user in self.__scrape_users():
             lottery_apply_user = lottery_apply.find_lottery_apply_user_by_scrape_status(
                 session, user["id"], "completed"
@@ -139,7 +139,7 @@ class IntarctionNet:
                 self.results["success"].append(user["id"])
                 lottery_apply_user.update_scrape_status(session, "canceled")
             else:
-                self.results["skiped"].append(user["id"])
+                self.results["skipped"].append(user["id"])
             self.scrape.logout()
         return self.results
 
