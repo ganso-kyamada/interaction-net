@@ -79,7 +79,7 @@ class InteractionNet:
         lottery_result = (
             LotteryResult.last(session)
             if is_retry
-            else LotteryResult.create_with_users(session)
+            else LotteryResult.create_in_progress(session)
         )
 
         self.results["accepted"] = []
